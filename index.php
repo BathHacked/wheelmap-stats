@@ -2,22 +2,27 @@
 
 include_once('config.php');
 
-$yes_json = json_decode(file_get_contents("https://wheelmap.org/api/nodes?api_key=$wheelmap_api_key&bbox=-2.413769,51.363902,-2.310473,51.415048&wheelchair=yes"), true);
-$limited_json = json_decode(file_get_contents("https://wheelmap.org/api/nodes?api_key=$wheelmap_api_key&bbox=-2.413769,51.363902,-2.310473,51.415048&wheelchair=limited"), true);
-$no_json = json_decode(file_get_contents("https://wheelmap.org/api/nodes?api_key=$wheelmap_api_key&bbox=-2.413769,51.363902,-2.310473,51.415048&wheelchair=no"), true);
-$unknown_json = json_decode(file_get_contents("https://wheelmap.org/api/nodes?api_key=$wheelmap_api_key&bbox=-2.413769,51.363902,-2.310473,51.415048&wheelchair=unknown"), true);
+$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+if ($mysqli->connect_errno) {
+    echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
+}
 
-$wheelchair_yes_venues = $yes_json['meta']['item_count_total'];
-$wheelchair_limited_venues = $limited_json['meta']['item_count_total'];
-$wheelchair_no_venues = $no_json['meta']['item_count_total'];
-$wheelchair_unknown_venues = $unknown_json['meta']['item_count_total'];
+//Get the latest values from the database for "all" category.
+foreach( ['yes','limited','no','unknown'] as $wheelchair ){
+    $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = 0
+     AND wheelchair = '$wheelchair'
+     ORDER BY TIME DESC
+     LIMIT 0,1");
+    $row = $res->fetch_assoc();
+    $wheelchair_venues[$wheelchair] = 0 + $row['count'];
+}
 
-$known_venues = $wheelchair_yes_venues + $wheelchair_limited_venues + $wheelchair_no_venues;
-$total_venues = $known_venues + $wheelchair_unknown_venues;
+$known_venues = $wheelchair_venues['yes'] + $wheelchair_venues['limited'] + $wheelchair_venues['no'];
+$total_venues = $known_venues + $wheelchair_venues['unknown'];
 
-$percent_yes = round($wheelchair_yes_venues / $total_venues * 100);
-$percent_no = round($wheelchair_no_venues / $total_venues * 100);
-$percent_limited = round($wheelchair_limited_venues / $total_venues * 100);
+$percent_yes = round($wheelchair_venues['yes'] / $total_venues * 100);
+$percent_no = round($wheelchair_venues['no'] / $total_venues * 100);
+$percent_limited = round($wheelchair_venues['limited'] / $total_venues * 100);
 $percent_known = $percent_yes + $percent_no + $percent_limited;
 $percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 100 and the progress bar is the right length.
 
@@ -59,10 +64,10 @@ $percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 1
             <div class="col-12">
                 <ul>
                     <li><strong><?php echo $total_venues; ?></strong> venues within Bath</li>
-                    <li class="wheelchair-yes"><strong><?php echo $wheelchair_yes_venues; ?></strong> wheelchair accessible venues (<?php echo $percent_yes; ?>%)</li>
-                    <li class="wheelchair-limited"><strong><?php echo $wheelchair_limited_venues; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent_limited; ?>%)</li>
-                    <li class="wheelchair-no"><strong><?php echo $wheelchair_no_venues; ?></strong> venues not wheelchair accessible (<?php echo $percent_no; ?>%)</li>
-                    <li class="wheelchair-unknown"><strong><?php echo $wheelchair_unknown_venues; ?></strong> venues not yet tagged (<?php echo $percent_unknown; ?>%) - <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">Help us by tagging venues you know about</a></li>
+                    <li class="wheelchair-yes"><strong><?php echo $wheelchair_venues['yes']; ?></strong> wheelchair accessible venues (<?php echo $percent_yes; ?>%)</li>
+                    <li class="wheelchair-limited"><strong><?php echo $wheelchair_venues['limited']; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent_limited; ?>%)</li>
+                    <li class="wheelchair-no"><strong><?php echo $wheelchair_venues['no']; ?></strong> venues not wheelchair accessible (<?php echo $percent_no; ?>%)</li>
+                    <li class="wheelchair-unknown"><strong><?php echo $wheelchair_venues['unknown']; ?></strong> venues not yet tagged (<?php echo $percent_unknown; ?>%) - <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">Help us by tagging venues you know about</a></li>
                 </ul>
             </div>
         </div>
