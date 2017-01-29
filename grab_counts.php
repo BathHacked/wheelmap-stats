@@ -9,7 +9,7 @@ if ($mysqli->connect_errno) {
     echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
 }
 
-$timeNow = date("Y-m-d H:i:s");
+$timeNow = gmdate("Y-m-d H:i:s");
 $saved = 0;
 foreach( ['yes','limited','no','unknown'] as $wheelchair_filter ){
     $json = json_decode(file_get_contents("https://wheelmap.org/api/nodes?api_key=$wheelmap_api_key&bbox=-2.413769,51.363902,-2.310473,51.415048&wheelchair=$wheelchair_filter"), true);
