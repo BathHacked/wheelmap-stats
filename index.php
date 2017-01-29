@@ -18,8 +18,9 @@ $total_venues = $known_venues + $wheelchair_unknown_venues;
 $percent_yes = round($wheelchair_yes_venues / $total_venues * 100);
 $percent_no = round($wheelchair_no_venues / $total_venues * 100);
 $percent_limited = round($wheelchair_limited_venues / $total_venues * 100);
-$percent_unknown = round($wheelchair_unknown_venues / $total_venues * 100);
-$percent_known = round($known_venues / $total_venues * 100);
+$percent_known = $percent_yes + $percent_no + $percent_limited;
+$percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 100 and the progress bar is the right length.
+
 
 
 ?>
@@ -91,12 +92,22 @@ $percent_known = round($known_venues / $total_venues * 100);
                 </p>
                 <?php }; ?>
 
-                <h3>Is this data openly available?</h3>
+                <h3>Is This Data Openly Available?</h3>
                 <p>
                     Yes. Wheelmap is based on the free world map <a href="http://www.openstreetmap.org/">OpenStreetMap</a> and all the data is stored there.
                     The data sets are published under the <a href="http://en.wikipedia.org/wiki/Open_Database_License">Open Database License</a> (ODbL)
                     and are available to anyone and can be used free of charge.
                 </p>
+
+                <h3>How Can I Get More Information?</h3>
+                <p>
+                    The <a href="https://wheelmap.org">wheelmap website</a> has all of the information about their worldwide crowdsourcing project, with an extensive <a href="https://news.wheelmap.org/en/faq/">FAQ</a>.
+                </p>
+                <p>
+                    <a href="https://bathhacked.org">Bath:Hacked</a> can provide help or training on how to use wheelmap to improve accessibility in Bath.<BR />
+                    You can tweet us at <a href="https://twitter.com/bathhacked">@BathHacked</a> or email <a href="mailto:leigh@bathhacked.org">leigh@bathhacked.org</a>.
+                </p>
+
                 <h3>Disclaimer</h3>
                 <p>
                     This page is not affiliated with <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">wheelmap.org</a>,
