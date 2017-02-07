@@ -17,6 +17,19 @@ foreach( ['yes','limited','no','unknown'] as $wheelchair ){
     $wheelchair_venues[$wheelchair] = 0 + $row['count'];
 }
 
+//Get the values from the database for "all" category from last week.
+foreach( ['yes','limited','no','unknown'] as $wheelchair ){
+    $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = 0
+     AND time < NOW() - '1 week'
+     AND wheelchair = '$wheelchair'
+     ORDER BY TIME DESC
+     LIMIT 0,1");
+    $row = $res->fetch_assoc();
+    $week_ago_wheelchair_venues[$wheelchair] = 0 + $row['count'];
+    $week_increase[$wheelchair] = $wheelchair_venues[$wheelchair] - $week_ago_wheelchair_venues[$wheelchair];
+}
+
+
 $known_venues = $wheelchair_venues['yes'] + $wheelchair_venues['limited'] + $wheelchair_venues['no'];
 $total_venues = $known_venues + $wheelchair_venues['unknown'];
 
@@ -64,9 +77,9 @@ $percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 1
             <div class="col-12">
                 <ul>
                     <li><strong><?php echo $total_venues; ?></strong> venues within Bath</li>
-                    <li class="wheelchair-yes"><strong><?php echo $wheelchair_venues['yes']; ?></strong> wheelchair accessible venues (<?php echo $percent_yes; ?>%)</li>
-                    <li class="wheelchair-limited"><strong><?php echo $wheelchair_venues['limited']; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent_limited; ?>%)</li>
-                    <li class="wheelchair-no"><strong><?php echo $wheelchair_venues['no']; ?></strong> venues not wheelchair accessible (<?php echo $percent_no; ?>%)</li>
+                    <li class="wheelchair-yes"><strong><?php echo $wheelchair_venues['yes']; ?></strong> wheelchair accessible venues (<?php echo $percent_yes; ?>%) <?php printf('%+d', $week_increase['yes']); ?> this week</li>
+                    <li class="wheelchair-limited"><strong><?php echo $wheelchair_venues['limited']; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent_limited; ?>%) <?php printf('%+d', $week_increase['limited']); ?> this week</li>
+                    <li class="wheelchair-no"><strong><?php echo $wheelchair_venues['no']; ?></strong> venues not wheelchair accessible (<?php echo $percent_no; ?>%) <?php printf('%+d', $week_increase['no']); ?> this week</li>
                     <li class="wheelchair-unknown"><strong><?php echo $wheelchair_venues['unknown']; ?></strong> venues not yet tagged (<?php echo $percent_unknown; ?>%) - <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">Help us by tagging venues you know about</a></li>
                 </ul>
             </div>
