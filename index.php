@@ -7,38 +7,46 @@ if ($mysqli->connect_errno) {
     echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
 }
 
-//Get the latest values from the database for "all" category.
-foreach( ['yes','limited','no','unknown'] as $wheelchair ){
-    $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = 0
-     AND wheelchair = '$wheelchair'
-     ORDER BY TIME DESC
-     LIMIT 0,1");
-    $row = $res->fetch_assoc();
-    $wheelchair_venues[$wheelchair] = 0 + $row['count'];
+$res = $mysqli->query("SELECT * FROM categories ORDER BY id");
+while($row = $res->fetch_assoc() ){
+    $category_names[$row['id']] = $row['localized_name'];
+};
+
+
+for( $categoryId = 0; $categoryId <= 12; $categoryId++ ){
+    //Get the latest values from the database for "all" category.
+    foreach( ['yes','limited','no','unknown'] as $wheelchair ){
+        $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = $categoryId
+         AND wheelchair = '$wheelchair'
+         ORDER BY TIME DESC
+         LIMIT 0,1");
+        $row = $res->fetch_assoc();
+        $wheelchair_venues[$categoryId][$wheelchair] = 0 + $row['count'];
+    }
+
+    //Get the values from the database for "all" category from last week.
+    foreach( ['yes','limited','no','unknown'] as $wheelchair ){
+        $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = $categoryId
+         AND time < NOW() - '1 week'
+         AND wheelchair = '$wheelchair'
+         ORDER BY TIME DESC
+         LIMIT 0,1");
+        $row = $res->fetch_assoc();
+        $week_ago_wheelchair_venues[$categoryId][$wheelchair] = 0 + $row['count'];
+        $week_increase[$categoryId][$wheelchair] = $wheelchair_venues[$categoryId][$wheelchair] - $week_ago_wheelchair_venues[$categoryId][$wheelchair];
+    }
+
+
+    $known_venues[$categoryId] = $wheelchair_venues[$categoryId]['yes'] + $wheelchair_venues[$categoryId]['limited'] + $wheelchair_venues[$categoryId]['no'];
+    $total_venues[$categoryId] = $known_venues[$categoryId] + $wheelchair_venues[$categoryId]['unknown'];
+    $week_increase_known[$categoryId] = $week_increase[$categoryId]['yes'] + $week_increase[$categoryId]['limited'] + $week_increase[$categoryId]['no'];
+
+    $percent[$categoryId]['yes'] = round($wheelchair_venues[$categoryId]['yes'] / $total_venues[$categoryId] * 100);
+    $percent[$categoryId]['no'] = round($wheelchair_venues[$categoryId]['no'] / $total_venues[$categoryId] * 100);
+    $percent[$categoryId]['limited'] = round($wheelchair_venues[$categoryId]['limited'] / $total_venues[$categoryId] * 100);
+    $percent[$categoryId]['known'] = $percent[$categoryId]['yes'] + $percent[$categoryId]['no'] + $percent[$categoryId]['limited'];
+    $percent[$categoryId]['unknown'] = 100 - $percent[$categoryId]['known']; //Do it this way so it always sums to 100 and the progress bar is the right length.
 }
-
-//Get the values from the database for "all" category from last week.
-foreach( ['yes','limited','no','unknown'] as $wheelchair ){
-    $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = 0
-     AND time < NOW() - '1 week'
-     AND wheelchair = '$wheelchair'
-     ORDER BY TIME DESC
-     LIMIT 0,1");
-    $row = $res->fetch_assoc();
-    $week_ago_wheelchair_venues[$wheelchair] = 0 + $row['count'];
-    $week_increase[$wheelchair] = $wheelchair_venues[$wheelchair] - $week_ago_wheelchair_venues[$wheelchair];
-}
-
-
-$known_venues = $wheelchair_venues['yes'] + $wheelchair_venues['limited'] + $wheelchair_venues['no'];
-$total_venues = $known_venues + $wheelchair_venues['unknown'];
-
-$percent_yes = round($wheelchair_venues['yes'] / $total_venues * 100);
-$percent_no = round($wheelchair_venues['no'] / $total_venues * 100);
-$percent_limited = round($wheelchair_venues['limited'] / $total_venues * 100);
-$percent_known = $percent_yes + $percent_no + $percent_limited;
-$percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 100 and the progress bar is the right length.
-
 
 
 ?>
@@ -60,30 +68,63 @@ $percent_unknown = 100 - $percent_known; //Do it this way so it always sums to 1
     </head>
 <body>
     <div class="container">
-        <h1>WheelMap Bath Progress</h1>
+        <h1 style="padding-top: 10px;">WheelMap Bath Progress</h1>
 
         <div class="row">
             <div class="col-12">
-                <h3>Wheelchair accessibility is known for <strong><?php echo $percent_known; ?>%</strong> of venues in Bath</h3>
+                <h3>Wheelchair accessibility is known for <strong><?php echo $percent[0]['known']; ?>%</strong> of venues in Bath</h3>
                 <div class="progress">
-                    <div class="progress-bar wheelchair-yes" role="progressbar" style="width: <?php echo $percent_yes; ?>%" aria-valuenow="<?php echo $percent_yes; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent_yes; ?>%</div>
-                    <div class="progress-bar wheelchair-limited" role="progressbar" style="width: <?php echo $percent_limited; ?>%" aria-valuenow="<?php echo $percent_limited; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent_limited; ?>%</div>
-                    <div class="progress-bar wheelchair-no" role="progressbar" style="width: <?php echo $percent_no; ?>%" aria-valuenow="<?php echo $percent_no; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent_no; ?>%</div>
-                    <div class="progress-bar wheelchair-unknown" role="progressbar" style="width: <?php echo $percent_unknown; ?>%" aria-valuenow="<?php echo $percent_unknown; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent_unknown; ?>%</div>
+                    <div class="progress-bar wheelchair-yes" role="progressbar" style="width: <?php echo $percent[0]['yes']; ?>%" aria-valuenow="<?php echo $percent[0]['yes']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[0]['yes']; ?>%</div>
+                    <div class="progress-bar wheelchair-limited" role="progressbar" style="width: <?php echo $percent[0]['limited']; ?>%" aria-valuenow="<?php echo $percent[0]['limited']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[0]['limited']; ?>%</div>
+                    <div class="progress-bar wheelchair-no" role="progressbar" style="width: <?php echo $percent[0]['no']; ?>%" aria-valuenow="<?php echo $percent[0]['no']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[0]['no']; ?>%</div>
+                    <div class="progress-bar wheelchair-unknown" role="progressbar" style="width: <?php echo $percent[0]['unknown']; ?>%" aria-valuenow="<?php echo $percent[0]['unknown']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[0]['unknown']; ?>%</div>
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div class="row" style="margin-top: 10px;">
             <div class="col-12">
-                <ul>
-                    <li><strong><?php echo $total_venues; ?></strong> venues within Bath</li>
-                    <li class="wheelchair-yes"><strong><?php echo $wheelchair_venues['yes']; ?></strong> wheelchair accessible venues (<?php echo $percent_yes; ?>%) <?php printf('%+d', $week_increase['yes']); ?> this week</li>
-                    <li class="wheelchair-limited"><strong><?php echo $wheelchair_venues['limited']; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent_limited; ?>%) <?php printf('%+d', $week_increase['limited']); ?> this week</li>
-                    <li class="wheelchair-no"><strong><?php echo $wheelchair_venues['no']; ?></strong> venues not wheelchair accessible (<?php echo $percent_no; ?>%) <?php printf('%+d', $week_increase['no']); ?> this week</li>
-                    <li class="wheelchair-unknown"><strong><?php echo $wheelchair_venues['unknown']; ?></strong> venues not yet tagged (<?php echo $percent_unknown; ?>%) - <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">Help us by tagging venues you know about</a></li>
-                </ul>
+                <div><strong><?php echo $total_venues[0]; ?></strong> venues within Bath</div>
+                <div class="wheelchair-yes"><strong><?php echo $wheelchair_venues[0]['yes']; ?></strong> wheelchair accessible venues (<?php echo $percent[0]['yes']; ?>%) <?php printf('%+d', $week_increase[0]['yes']); ?> this week</div>
+                <div class="wheelchair-limited"><strong><?php echo $wheelchair_venues[0]['limited']; ?></strong> venues with limited wheelchair accessibility (<?php echo $percent[0]['limited']; ?>%) <?php printf('%+d', $week_increase[0]['limited']); ?> this week</div>
+                <div class="wheelchair-no"><strong><?php echo $wheelchair_venues[0]['no']; ?></strong> venues not wheelchair accessible (<?php echo $percent[0]['no']; ?>%) <?php printf('%+d', $week_increase[0]['no']); ?> this week</div>
+                <div class="wheelchair-unknown"><strong><?php echo $wheelchair_venues[0]['unknown']; ?></strong> venues not yet tagged (<?php echo $percent[0]['unknown']; ?>%) - <a href="https://wheelmap.org/en/map#/?lat=51.382281056660254&lon=-2.370600700378418&zoom=14">Help us by tagging venues you know about</a></div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col-12">
+                <H3>By Category</H3>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3"></div>
+            <div class="col-5"></div>
+            <div class="col-2"><B>Known / Total</B></div>
+            <div class="col-2"><B>Weekly Change</B></div>
+        </div>
+
+        <?php for( $categoryId=1; $categoryId <= 12; $categoryId++ ){ ?>
+            <div class="row">
+                <div class="col-3">
+                    <?php echo $category_names[$categoryId]; ?>
+                </div>
+                <div class="col-5">
+                    <div class="progress progress-category">
+                        <div class="progress-bar wheelchair-yes" role="progressbar" style="width: <?php echo $percent[$categoryId]['yes']; ?>%" aria-valuenow="<?php echo $percent[$categoryId]['yes']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[$categoryId]['yes']; ?>%</div>
+                        <div class="progress-bar wheelchair-limited" role="progressbar" style="width: <?php echo $percent[$categoryId]['limited']; ?>%" aria-valuenow="<?php echo $percent[$categoryId]['limited']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[$categoryId]['limited']; ?>%</div>
+                        <div class="progress-bar wheelchair-no" role="progressbar" style="width: <?php echo $percent[$categoryId]['no']; ?>%" aria-valuenow="<?php echo $percent[$categoryId]['no']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[$categoryId]['no']; ?>%</div>
+                        <div class="progress-bar wheelchair-unknown" role="progressbar" style="width: <?php echo $percent[$categoryId]['unknown']; ?>%" aria-valuenow="<?php echo $percent[$categoryId]['unknown']; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $percent[$categoryId]['unknown']; ?>%</div>
+                    </div>
+                </div>
+
+                <div class="col-2">
+                    <?php echo $known_venues[$categoryId]; ?> / <?php echo $total_venues[$categoryId]; ?>
+                </div>
+                <div class="col-2">
+                    <?php printf('%+d', $week_increase_known[$categoryId] ); ?>
+                </div>
+            </div>
+        <?php } ?>
         <div class="row">
             <div class="col-12">
                 <iframe class="wheelmap-embed" src="//wheelmap.org/en/embed/9ZVsvrTsjWpyPMYTftm9#/?lat=51.3813864&lon=-2.3596962&zoom=15"></iframe>
