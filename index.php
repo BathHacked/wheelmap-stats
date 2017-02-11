@@ -12,6 +12,7 @@ while($row = $res->fetch_assoc() ){
     $category_names[$row['id']] = $row['localized_name'];
 };
 
+$compareTime = gmdate("Y-m-d H:i:s", time()-7*24*60*60);
 
 for( $categoryId = 0; $categoryId <= 12; $categoryId++ ){
     //Get the latest values from the database for "all" category.
@@ -26,11 +27,12 @@ for( $categoryId = 0; $categoryId <= 12; $categoryId++ ){
 
     //Get the values from the database for "all" category from last week.
     foreach( ['yes','limited','no','unknown'] as $wheelchair ){
-        $res = $mysqli->query("SELECT * FROM venue_counts WHERE category = $categoryId
-         AND time < NOW() - '1 week'
+        $sql = "SELECT * FROM venue_counts WHERE category = $categoryId
+         AND time < '$compareTime'
          AND wheelchair = '$wheelchair'
-         ORDER BY TIME DESC
-         LIMIT 0,1");
+         ORDER BY time DESC
+         LIMIT 0,1";
+        $res = $mysqli->query($sql);
         $row = $res->fetch_assoc();
         $week_ago_wheelchair_venues[$categoryId][$wheelchair] = 0 + $row['count'];
         $week_increase[$categoryId][$wheelchair] = $wheelchair_venues[$categoryId][$wheelchair] - $week_ago_wheelchair_venues[$categoryId][$wheelchair];
