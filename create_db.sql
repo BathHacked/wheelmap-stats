@@ -1,5 +1,5 @@
-CREATE TABLE `wheelmap_history`.`venue_counts` ( `category` INT NOT NULL , `wheelchair` ENUM('yes','limited','no','unknown') NOT NULL , `time` DATETIME NOT NULL , `count` INT NOT NULL ) ENGINE = InnoDB;
-ALTER TABLE `wheelmap_history`.`venue_counts` ADD PRIMARY KEY (`time`, `category`, `wheelchair`);
+CREATE TABLE `venue_counts` ( `category` INT NOT NULL , `wheelchair` ENUM('yes','limited','no','unknown') NOT NULL , `time` DATETIME NOT NULL , `count` INT NOT NULL ) ENGINE = InnoDB;
+ALTER TABLE `venue_counts` ADD PRIMARY KEY (`time`, `category`, `wheelchair`);
 
 CREATE TABLE `categories` (
   `id` int(11) NOT NULL,
